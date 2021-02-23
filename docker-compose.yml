@@ -1,0 +1,29 @@
+version: '3.4'
+
+services:
+  web:
+    image: ${DOCKER_REGISTRY-}web
+    build:
+      context: .
+      dockerfile: web/Dockerfile
+    environment:
+      SampleReadOnlyConnection: "server=db;database=sample;user id=root;password=root;"
+    depends_on:
+      - db
+    # if you start containers by CLI (`docker-compose up`), following entrypoint will be used
+    entrypoint: ["/wait-for-it.sh", "db:3306", "-t", "120", "--", "dotnet", "web.dll"]
+
+  db:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: root   
+      MYSQL_DATABASE: sample
+      MYSQL_USER: docker
+      MYSQL_PASSWORD: docker
+    command: mysqld
+    volumes:
+      - ./db/my.cnf:/etc/mysql/conf.d/my.cnf
+      # For init DB (init takes several seconds)
+      - ./db/initdb.d:/docker-entrypoint-initdb.d
+    ports:
+      - 3306:3306
